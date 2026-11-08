@@ -42,7 +42,7 @@ The plugin test uses a real `Request` to `https://openrouter.ai/api/v1/chat/comp
 
 Performed in an isolated home with the installed OpenCode **2.2.6** binary:
 
-- Config: a custom OpenAI-compatible provider `mock` pointing at a local mock server, plus `plugins: ["/home/.../openrouter-manager/plugin"]`.
+- Config: a custom OpenAI-compatible provider `mock` pointing at a local mock server, plus `plugins: ["<path-to-openrouter-manager>/plugin"]`.
 - `opencode run --standalone -m mock/deepseek/x "hi"`.
 - Result: the run completed (`ok` from the mock), OpenCode watched and loaded `plugin/index.js`, and the plugin wrote:
 
