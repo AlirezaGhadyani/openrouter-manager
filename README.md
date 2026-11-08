@@ -168,7 +168,8 @@ Or manually:
    https://github.com/AlirezaGhadyani/openrouter-manager.git
    ```
 
-3. Select **Add**.
+3. Select **Add**. To pin the tagged release instead of following `main`, append
+   `#v1.0.0` to the Git URL.
 4. Approve the three requests:
    - **Read and write files outside the project** — only
      `~/.config/openrouter-manager/*`.
