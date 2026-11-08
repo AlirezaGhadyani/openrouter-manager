@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenRouter Manager harness</title>
+    <style>
+      html, body { height: 100%; margin: 0; background: #0f1014; }
+      iframe { border: 0; width: 100%; height: 100vh; display: block; }
+    </style>
+  </head>
+  <body>
+    <iframe id="guest" src="../panel/index.html"></iframe>
+    <script>
+      const CHANNEL = 'openchamber.sdk';
+      const params = new URLSearchParams(location.search);
+      const mode = params.get('theme') === 'light' ? 'light' : 'dark';
+
+      const dark = {
+        background: '#111318', elevated: '#171a21', foreground: '#e7e9ee', muted: '#9aa1ad',
+        subtle: '#1c1f27', border: '#2b303b', hover: '#20242d', selection: '#25324d',
+        focus: '#7aa2ff', primary: '#6c8cff', mutedSurface: '#232733', elevatedForeground: '#e7e9ee',
+        active: '#2c3341', selectionForeground: '#e7e9ee', primaryForeground: '#0c1020',
+        primaryText: '#b9c8ff', successText: '#74d99f', warningText: '#e8c067', errorText: '#ff8b8b',
+        infoText: '#8fb8ff', success: '#4cc38a', warning: '#d9a441', error: '#e55353', info: '#5b8def',
+        font: 'Inter, system-ui, sans-serif', mono: 'ui-monospace, SFMono-Regular, monospace', radius: '9px',
+      };
+      const light = {
+        background: '#ffffff', elevated: '#ffffff', foreground: '#17181c', muted: '#676c78',
+        subtle: '#f5f6f8', border: '#dfe2e8', hover: '#f2f3f6', selection: '#e8eeff',
+        focus: '#3b5bdb', primary: '#3b5bdb', mutedSurface: '#eceef3', elevatedForeground: '#17181c',
+        active: '#e6e9f0', selectionForeground: '#17181c', primaryForeground: '#ffffff',
+        primaryText: '#2f49b0', successText: '#177245', warningText: '#8a5a00', errorText: '#b42318',
+        infoText: '#1f4fa8', success: '#1a7f45', warning: '#9a6200', error: '#b42318', info: '#1f5fbf',
+        font: 'Inter, system-ui, sans-serif', mono: 'ui-monospace, SFMono-Regular, monospace', radius: '9px',
+      };
+
+      const MODELS = [
+        ['deepseek/deepseek-v4.1-flash-1017', 'DeepSeek: DeepSeek V4.1 Flash 1017', 1048576, 0.006, 0.5, ['text','image'], '0.005'],
+        ['anthropic/claude-sonnet-4.5', 'Anthropic: Claude Sonnet 4.5', 200000, 3, 15, ['text','image'], '0.3'],
+        ['openai/gpt-5.2', 'OpenAI: GPT-5.2', 400000, 1.75, 14, ['text','image'], '0.175'],
+        ['google/gemini-3-flash-preview', 'Google: Gemini 3 Flash Preview', 1000000, 0.15, 0.6, ['text','image','audio'], '0.0375'],
+        ['meta-llama/llama-4-maverick', 'Meta: Llama 4 Maverick', 1048576, 0.2, 0.6, ['text'], '0.1'],
+        ['qwen/qwen3-max', 'Qwen: Qwen3 Max', 262144, 0.78, 3.9, ['text'], null],
+        ['mistralai/mistral-small-3.2-24b-instruct', 'Mistral: Mistral Small 3.2 24B', 128000, 0.06, 0.18, ['text'], '0.03'],
+        ['x-ai/grok-4-fast', 'xAI: Grok 4 Fast', 2000000, 0.2, 0.5, ['text','image'], null],
+      ].map(([id, name, context, prompt, completion, modalities, cache]) => ({
+        id, canonical_slug: id.replace(/-1017$/, '-20261017'), name, created: 1792225624,
+        context_length: context, pricing: { prompt: String(prompt / 1e6), completion: String(completion / 1e6), ...(cache ? { input_cache_read: String(Number(cache) / 1e6) } : {}) },
+        architecture: { input_modalities: modalities, output_modalities: ['text'] },
+        top_provider: { context_length: context, max_completion_tokens: Math.round(context / 4) },
+        links: { details: `/api/v1/models/${id}/endpoints` },
+      }));
+
+      const PROVIDERS = [
+        ['deepinfra', 'DeepInfra', 'deepinfra/fp8', 'fp8', -10, 0, 0.78, 0.86, 210, 520, 96, 62],
+        ['together', 'Together', 'together/turbo', 'fp16', 8, 0.04, 0.9, 0.94, 640, 1400, 44, 21],
+        ['fireworks', 'Fireworks', 'fireworks', 'fp8', -4, 0.02, 0.85, 0.9, 310, 760, 71, 40],
+        ['openai', 'OpenAI', 'openai', 'fp16', 65, 0.35, 1, 1, 120, 340, 88, 74],
+        ['azure', 'Azure', 'azure/us', 'fp16', 70, 0.32, 1.02, 1.01, 150, 390, 82, 60],
+      ];
+
+      function endpointsFor(model) {
+        return {
+          data: {
+            id: model.id,
+            name: model.name,
+            endpoints: PROVIDERS.slice(0, 4).map((provider, index) => {
+              const [slug, name, tag, quant, deltaPct, cacheDelta, latFactor, tputFactor, p50lat, p90lat, p50tput, p90tput] = provider;
+              const prompt = Number(model.pricing.prompt) * (1 + deltaPct / 100);
+              const completion = Number(model.pricing.completion) * (1 + deltaPct / 100);
+              const cacheRead = model.pricing.input_cache_read ? Number(model.pricing.input_cache_read) * (1 + cacheDelta) : undefined;
+              const latency = index === 4 ? null : { p50: p50lat, p75: Math.round(p50lat * 1.4), p90: p90lat, p99: Math.round(p90lat * 1.3) };
+              return {
+                name: `${name} | ${model.id}`,
+                model_id: model.id,
+                model_name: model.name,
+                context_length: Math.round(model.context_length * (index === 3 ? 0.5 : 1)),
+                pricing: {
+                  prompt: String(prompt),
+                  completion: String(completion),
+                  ...(cacheRead ? { input_cache_read: String(cacheRead) } : {}),
+                  ...(index === 1 ? { image: '0.02', request: '0.001' } : {}),
+                  discount: 0,
+                },
+                provider_name: name,
+                tag,
+                service_tier: index === 1 ? 'priority' : null,
+                quantization: quant,
+                max_completion_tokens: 32000,
+                max_prompt_tokens: null,
+                supported_parameters: ['tools', 'reasoning'],
+                supports_tool_choice: { auto: true, required: true, none: false, function: true },
+                status: index === 3 ? 2 : 0,
+                uptime_last_30m: index === 3 ? 87.5 : 99.9 - index * 0.3,
+                uptime_last_5m: 100,
+                uptime_last_1d: 99.4,
+                supports_implicit_caching: index < 2,
+                latency_last_30m: latency,
+                throughput_last_30m: index === 4 ? null : { p50: p50tput * tputFactor, p90: p90tput * tputFactor, p99: p90tput * 1.2 },
+              };
+            }),
+          },
+        };
+      }
+
+      const guest = document.getElementById('guest');
+      const theme = mode === 'light' ? light : dark;
+
+      function reply(id, payload) {
+        guest.contentWindow.postMessage({ channel: CHANNEL, v: 1, type: 'result', id, ok: true, payload }, '*');
+      }
+      function fail(id, code, error) {
+        guest.contentWindow.postMessage({ channel: CHANNEL, v: 1, type: 'result', id, ok: false, code, error }, '*');
+      }
+
+      window.addEventListener('message', (event) => {
+        if (event.source !== guest.contentWindow) return;
+        const message = event.data;
+        if (!message || message.channel !== CHANNEL) return;
+        if (message.type === 'hello') {
+          guest.contentWindow.postMessage({
+            channel: CHANNEL, v: 1, type: 'ready',
+            payload: {
+              theme: { mode, tokens: theme },
+              locale: 'en',
+              directory: null,
+              session: null,
+              surface: 'panel',
+              connection: { connected: true, account: 'harness@local' },
+              settings: {},
+              item: null,
+              features: { deviceStorage: true },
+            },
+          }, '*');
+          return;
+        }
+        if (message.type === 'toast' || message.type === 'clipboard-write' || message.type === 'resize' || message.type === 'open-url') {
+          reply(message.id, {});
+          return;
+        }
+        if (message.type === 'file-read') {
+          fail(message.id, 'NOT_FOUND', 'missing');
+          return;
+        }
+        if (message.type === 'file-stat') {
+          reply(message.id, { kind: 'missing', size: 0, mtime: 0 });
+          return;
+        }
+        if (message.type === 'file-write') {
+          reply(message.id, { written: true });
+          return;
+        }
+        if (message.type === 'request') {
+          const path = message.payload.path;
+          if (path === '/api/v1/models') {
+            reply(message.id, { status: 200, body: JSON.stringify({ data: MODELS, total_count: MODELS.length }) });
+            return;
+          }
+          if (path === '/api/v1/key') {
+            reply(message.id, { status: 200, body: JSON.stringify({ data: { label: 'harness key', usage: 12.4, limit: 50, is_free_tier: false } }) });
+            return;
+          }
+          const model = MODELS.find((entry) => path.includes(entry.canonical_slug) || path.includes(entry.id));
+          if (path.endsWith('/endpoints') && model) {
+            reply(message.id, { status: 200, body: JSON.stringify(endpointsFor(model)) });
+            return;
+          }
+          reply(message.id, { status: 404, body: '{"error":{"message":"not found"}}' });
+          return;
+        }
+        if (message.id) reply(message.id, {});
+      });
+
+      guest.addEventListener('load', () => {
+        guest.contentWindow.postMessage({ channel: CHANNEL, v: 1, type: 'ready',
+          payload: { theme: { mode, tokens: theme }, locale: 'en', directory: null, session: null, surface: 'panel',
+            connection: { connected: true, account: 'harness@local' }, settings: {}, item: null } }, '*');
+      });
+    </script>
+  </body>
+</html>

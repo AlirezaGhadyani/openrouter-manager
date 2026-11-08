@@ -1,0 +1,70 @@
+{
+  "name": "openrouter-manager",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Visual OpenRouter provider routing for OpenChamber: compare providers, set policies, and inject them into real model requests.",
+  "license": "MIT",
+  "author": "Alireza Ghadyani",
+  "homepage": "https://github.com/AlirezaGhadyani/openrouter-manager#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlirezaGhadyani/openrouter-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AlirezaGhadyani/openrouter-manager/issues"
+  },
+  "keywords": [
+    "openchamber",
+    "openrouter",
+    "openrouter-routing",
+    "llm",
+    "opencode",
+    "openchamber-plugin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-transform-types test/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build && node scripts/check-package.mjs"
+  },
+  "openchamber": {
+    "apiVersion": 1,
+    "engines": {
+      "openchamber": ">=2.7.0"
+    },
+    "id": "openrouter-manager",
+    "name": "OpenRouter Manager",
+    "icon": "icon.svg",
+    "contributes": {
+      "panel": {
+        "entry": "panel/index.html"
+      },
+      "page": true,
+      "filesystem": [
+        "~/.config/openrouter-manager/**",
+        "~/.config/openrouter-manager/*"
+      ],
+      "integration": {
+        "name": "OpenRouter",
+        "description": "Reads the public model catalog and provider endpoints, and stores routing profiles. The API key stays in OpenChamber and is attached by the host.",
+        "token": {
+          "apiOrigin": "https://openrouter.ai",
+          "scheme": "bearer"
+        }
+      },
+      "opencodePlugin": "plugin"
+    }
+  },
+  "dependencies": {
+    "@openchamber/sdk": "2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}
