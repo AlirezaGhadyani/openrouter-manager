@@ -157,7 +157,7 @@ unchanged. Routing must never break a model call.
 
 ### Install from GitHub
 
-[**Add OpenRouter Manager to OpenChamber**](openchamber://extensions/install?url=https%3A%2F%2Fgithub.com%2FAlirezaGhadyani%2Fopenrouter-manager)
+Open the [**OpenRouter Manager install page**](https://alirezaghadyani.github.io/openrouter-manager/) and choose **Open in OpenChamber**. The page hands off to the app with the repository already filled in.
 
 Or manually:
 
