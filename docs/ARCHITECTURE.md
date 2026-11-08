@@ -7,7 +7,7 @@ Nothing here is assumed. The design rests on five facts checked against the inst
 | Fact | Evidence |
 |---|---|
 | An extension can ship code that runs inside OpenCode | `@openchamber/sdk@2.7.0` manifest key `contributes.opencodePlugin`, parsed successfully by the host SDK; the host lists the folder in its **managed** OpenCode config (`opencode.managed.json`) |
-| A plugin entry is `default { id, setup }` with no static imports | OpenChamber extensions skill and SDK `API.md`; the host's own `openagent-tool` plugin uses this shape |
+| A plugin entry is `default { id, setup }` with no static imports | OpenChamber extensions skill and SDK `API.md`; the host's own managed plugin uses this shape |
 | OpenCode 2.2.6 runs a request hook that can replace the request | `session.hook("http.request", ...)` in the V2 plugin docs; the installed OpenCode binary contains `trigger("session","http.request",{...request})` and uses the returned `request`, allowing a replacement `Request` |
 | The hook sees the final OpenRouter body | OpenRouter is a native OpenCode protocol (`openrouter-chat`, `openrouter-responses`); the hook runs after protocol lowering and before the driver sends |
 | OpenRouter returns endpoint percentiles only to authenticated calls | Official `PublicEndpoint` schema: latency ms, throughput tokens/sec, `null` without a key; confirmed against the live API |

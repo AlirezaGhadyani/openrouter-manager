@@ -59,7 +59,7 @@ Performed in an isolated home with the installed OpenCode **2.2.6** binary:
 
 This proves the OpenChamber-style plugin folder, `{ id, setup }` export, Node built-in access without imports, config reading, and `http.request` hook registration work in the real managed runtime.
 
-The first mock run used `127.0.0.1`, so the unmodified plugin correctly did **not** rewrite it (it only touches `*.openrouter.ai`).
+The first mock run used a loopback address, so the unmodified plugin correctly did **not** rewrite it (it only touches `*.openrouter.ai`).
 
 ### Request rewrite inside OpenCode
 
